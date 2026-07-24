@@ -1,0 +1,6 @@
+{
+  "name": "Yellow 360",
+  "description": "Multi-tenant Google review collection platform with smart auto-routing for 4-5 star reviews, private feedback protection, and Yellow 360 design theme",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,58 @@
+// Prisma Schema for ReviewFlow
+// Multi-tenant review collection web app
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPERADMIN
+  BRAND_ADMIN
+}
+
+enum ReviewStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  logoUrl       String?
+  primaryColor  String?
+  googlePlaceId String?
+  ownerEmail    String
+  createdAt     DateTime @default(now())
+  admins        AdminUser[]
+  reviews       Review[]
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(BRAND_ADMIN)
+  orgId        String?
+  org          Organization? @relation(fields: [orgId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id])
+  rating          Int
+  commentText     String?
+  customerName    String?
+  customerContact String?
+  status          ReviewStatus @default(NEW)
+  internalNotes   String?
+  createdAt       DateTime @default(now())
+}
