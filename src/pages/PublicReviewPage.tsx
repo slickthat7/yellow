@@ -84,12 +84,12 @@ export const PublicReviewPage: React.FC = () => {
   // Countdown timer effect for auto-redirect when rating > 3
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (submittedBranch === 'GOOGLE_REDIRECT' && autoRedirectStarted && countdown > 0) {
-      timer = setTimeout(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-    } else if (submittedBranch === 'GOOGLE_REDIRECT' && autoRedirectStarted && countdown === 0) {
-      if (redirectUrl) {
+    if (submittedBranch === 'GOOGLE_REDIRECT' && autoRedirectStarted) {
+      if (countdown > 0) {
+        timer = setTimeout(() => {
+          setCountdown((prev) => prev - 1);
+        }, 500);
+      } else if (redirectUrl) {
         window.location.href = redirectUrl;
       }
     }
@@ -151,8 +151,13 @@ export const PublicReviewPage: React.FC = () => {
         const finalUrl = data.googleReviewUrl || (org ? calculateTargetUrl(org) : redirectUrl);
         if (finalUrl) setRedirectUrl(finalUrl);
 
-        // 3. Initiate auto-redirect countdown
+        // 3. Trigger immediate auto-redirect to Google Reviews
         setAutoRedirectStarted(true);
+        if (finalUrl) {
+          setTimeout(() => {
+            window.location.href = finalUrl;
+          }, 300);
+        }
       }
     } catch (err: any) {
       alert(err.message || 'Something went wrong submitting your review');
