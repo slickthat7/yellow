@@ -94,27 +94,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
   const [loading, setLoading] = useState(true);
 
+  // Safe response parser helper
+  const parseJsonResponse = async (res: Response) => {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return await res.json();
+    }
+    const txt = await res.text();
+    throw new Error(`Server returned non-JSON response (${res.status}): ${txt.slice(0, 80)}`);
+  };
+
   // Fetch Core Data on Mount
   const fetchData = async () => {
     setLoading(true);
     try {
       // 1. Fetch Analytics
       const analyticsRes = await fetch('/api/admin/analytics');
-      if (analyticsRes.ok) {
+      if (analyticsRes.ok && (analyticsRes.headers.get('content-type') || '').includes('application/json')) {
         const aData = await analyticsRes.json();
         setAnalytics(aData);
       }
 
       // 2. Fetch Reviews
       const reviewsRes = await fetch('/api/admin/reviews');
-      if (reviewsRes.ok) {
+      if (reviewsRes.ok && (reviewsRes.headers.get('content-type') || '').includes('application/json')) {
         const rData = await reviewsRes.json();
         setReviews(rData.reviews || []);
       }
 
       // 3. Fetch Team Members / Admins (For both Superadmin and Brand Admin)
       const adminsRes = await fetch('/api/admin/admins');
-      if (adminsRes.ok) {
+      if (adminsRes.ok && (adminsRes.headers.get('content-type') || '').includes('application/json')) {
         const admData = await adminsRes.json();
         setAdminsList(admData.admins || []);
       }
@@ -122,13 +132,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       // 4. Role Specific Fetches
       if (isSuperadmin) {
         const orgsRes = await fetch('/api/admin/orgs');
-        if (orgsRes.ok) {
+        if (orgsRes.ok && (orgsRes.headers.get('content-type') || '').includes('application/json')) {
           const oData = await orgsRes.json();
           setOrgs(oData.orgs || []);
         }
       } else {
         const myOrgRes = await fetch('/api/admin/my-org');
-        if (myOrgRes.ok) {
+        if (myOrgRes.ok && (myOrgRes.headers.get('content-type') || '').includes('application/json')) {
           const mData = await myOrgRes.json();
           setMyOrg(mData.org);
           setBrandingName(mData.org.name || '');
@@ -186,14 +196,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to save branding');
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Failed to save branding');
       setMyOrg(data.org);
       setBrandingSaved(true);
       setTimeout(() => setBrandingSaved(false), 3000);
       await fetchData();
-    } catch (err) {
-      alert('Failed to update branding settings');
+    } catch (err: any) {
+      alert(err.message || 'Failed to update branding settings');
     }
   };
 
@@ -216,7 +226,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         }),
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || 'Failed to create organization');
 
       setIsCreateOrgModalOpen(false);
@@ -248,7 +258,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         }),
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || 'Failed to create admin');
 
       setIsCreateAdminModalOpen(false);

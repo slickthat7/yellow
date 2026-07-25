@@ -15,11 +15,14 @@ export default function App() {
   useEffect(() => {
     fetch('/api/auth/me')
       .then((res) => {
-        if (res.ok) return res.json();
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          return res.json();
+        }
         throw new Error('Not authenticated');
       })
       .then((data) => {
-        if (data.user) {
+        if (data && data.user) {
           setCurrentUser(data.user);
         }
       })

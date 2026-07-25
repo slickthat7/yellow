@@ -56,9 +56,19 @@ export const PublicReviewPage: React.FC = () => {
     setError(null);
 
     fetch(`/api/public/org/${brandSlug}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Organization not found');
-        return res.json();
+      .then(async (res) => {
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok) {
+          if (contentType.includes('application/json')) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Organization not found');
+          }
+          throw new Error('Organization not found');
+        }
+        if (contentType.includes('application/json')) {
+          return res.json();
+        }
+        throw new Error('Invalid response from server');
       })
       .then((data: PublicOrgData) => {
         setOrg(data);
@@ -108,7 +118,15 @@ export const PublicReviewPage: React.FC = () => {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const txt = await res.text();
+        throw new Error(`Server error (${res.status}): ${txt.slice(0, 80)}`);
+      }
+
       if (!res.ok) {
         throw new Error(data.error || 'Failed to submit review');
       }

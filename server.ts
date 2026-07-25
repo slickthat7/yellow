@@ -427,6 +427,20 @@ async function startServer() {
     res.json({ success: true, message: 'Database reset to initial demo state' });
   });
 
+  // Catch-all 404 handler for API routes to prevent falling through to Vite HTML fallback
+  app.all('/api/*', (req: Request, res: Response) => {
+    res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl}` });
+  });
+
+  // Global Express Error Handler
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error('Unhandled server error:', err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    res.status(500).json({ error: err?.message || 'Internal Server Error' });
+  });
+
   // ==========================================
   // VITE & STATIC FILES
   // ==========================================
