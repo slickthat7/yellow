@@ -40,6 +40,14 @@ const INITIAL_ORGS: Organization[] = [
 const INITIAL_ADMINS: Array<AdminUser & { passwordHash: string }> = [
   {
     id: 'admin-super-1',
+    email: 'superadmin@reviewflow.com',
+    passwordHash: DEMO_PASSWORD_HASH,
+    role: 'SUPERADMIN',
+    orgId: null,
+    createdAt: new Date('2026-01-01T00:00:00Z').toISOString(),
+  },
+  {
+    id: 'admin-super-2',
     email: 'superadmin@reviewflow.io',
     passwordHash: DEMO_PASSWORD_HASH,
     role: 'SUPERADMIN',

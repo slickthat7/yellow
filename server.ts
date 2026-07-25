@@ -152,44 +152,50 @@ async function startServer() {
   // ==========================================
 
   app.post('/api/auth/login', (req: Request, res: Response) => {
-    const { email, password } = req.body;
+    try {
+      const { email, password } = req.body || {};
 
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
-      return;
+      if (!email || !password) {
+        res.status(400).json({ error: 'Email and password are required' });
+        return;
+      }
+
+      const cleanEmail = String(email).trim().toLowerCase();
+      const admin = dbStore.getAdminByEmail(cleanEmail);
+      if (!admin) {
+        res.status(401).json({ error: 'Invalid email or password' });
+        return;
+      }
+
+      const isMatch = bcrypt.compareSync(password, admin.passwordHash);
+      if (!isMatch) {
+        res.status(401).json({ error: 'Invalid email or password' });
+        return;
+      }
+
+      const org = admin.orgId ? dbStore.getOrgById(admin.orgId) : null;
+
+      const sessionUser: AuthSessionUser = {
+        id: admin.id,
+        email: admin.email,
+        role: admin.role,
+        orgId: admin.orgId,
+        orgName: org ? org.name : null,
+        orgSlug: org ? org.slug : null,
+      };
+
+      const token = createSession(sessionUser);
+
+      res.setHeader('Set-Cookie', `rf_session=${token}; Path=/; HttpOnly; SameSite=Lax`);
+      res.json({
+        success: true,
+        token,
+        user: sessionUser,
+      });
+    } catch (err: any) {
+      console.error('Login error:', err);
+      res.status(500).json({ error: err.message || 'Server error during authentication' });
     }
-
-    const admin = dbStore.getAdminByEmail(email);
-    if (!admin) {
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    const isMatch = bcrypt.compareSync(password, admin.passwordHash);
-    if (!isMatch) {
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    const org = admin.orgId ? dbStore.getOrgById(admin.orgId) : null;
-
-    const sessionUser: AuthSessionUser = {
-      id: admin.id,
-      email: admin.email,
-      role: admin.role,
-      orgId: admin.orgId,
-      orgName: org ? org.name : null,
-      orgSlug: org ? org.slug : null,
-    };
-
-    const token = createSession(sessionUser);
-
-    res.setHeader('Set-Cookie', `rf_session=${token}; Path=/; HttpOnly; SameSite=Lax`);
-    res.json({
-      success: true,
-      token,
-      user: sessionUser,
-    });
   });
 
   app.get('/api/auth/me', requireAuth, (req: AuthenticatedRequest, res: Response) => {
