@@ -13,7 +13,13 @@ export default function App() {
 
   // Restore authenticated session on app load
   useEffect(() => {
-    fetch('/api/auth/me')
+    const token = localStorage.getItem('rf_token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch('/api/auth/me', { headers })
       .then((res) => {
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
@@ -40,10 +46,16 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      const token = localStorage.getItem('rf_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      await fetch('/api/auth/logout', { method: 'POST', headers });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      localStorage.removeItem('rf_token');
       setCurrentUser(null);
     }
   };

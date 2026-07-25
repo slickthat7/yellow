@@ -94,6 +94,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
   const [loading, setLoading] = useState(true);
 
+  // Helper for authenticated API calls
+  const authFetch = (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem('rf_token');
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {}),
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return fetch(url, { ...options, headers });
+  };
+
   // Safe response parser helper
   const parseJsonResponse = async (res: Response) => {
     const contentType = res.headers.get('content-type') || '';
@@ -109,21 +121,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     setLoading(true);
     try {
       // 1. Fetch Analytics
-      const analyticsRes = await fetch('/api/admin/analytics');
+      const analyticsRes = await authFetch('/api/admin/analytics');
       if (analyticsRes.ok && (analyticsRes.headers.get('content-type') || '').includes('application/json')) {
         const aData = await analyticsRes.json();
         setAnalytics(aData);
       }
 
       // 2. Fetch Reviews
-      const reviewsRes = await fetch('/api/admin/reviews');
+      const reviewsRes = await authFetch('/api/admin/reviews');
       if (reviewsRes.ok && (reviewsRes.headers.get('content-type') || '').includes('application/json')) {
         const rData = await reviewsRes.json();
         setReviews(rData.reviews || []);
       }
 
       // 3. Fetch Team Members / Admins (For both Superadmin and Brand Admin)
-      const adminsRes = await fetch('/api/admin/admins');
+      const adminsRes = await authFetch('/api/admin/admins');
       if (adminsRes.ok && (adminsRes.headers.get('content-type') || '').includes('application/json')) {
         const admData = await adminsRes.json();
         setAdminsList(admData.admins || []);
@@ -131,13 +143,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
       // 4. Role Specific Fetches
       if (isSuperadmin) {
-        const orgsRes = await fetch('/api/admin/orgs');
+        const orgsRes = await authFetch('/api/admin/orgs');
         if (orgsRes.ok && (orgsRes.headers.get('content-type') || '').includes('application/json')) {
           const oData = await orgsRes.json();
           setOrgs(oData.orgs || []);
         }
       } else {
-        const myOrgRes = await fetch('/api/admin/my-org');
+        const myOrgRes = await authFetch('/api/admin/my-org');
         if (myOrgRes.ok && (myOrgRes.headers.get('content-type') || '').includes('application/json')) {
           const mData = await myOrgRes.json();
           setMyOrg(mData.org);
@@ -162,7 +174,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const handleResetDemoData = async () => {
     if (!window.confirm('Reset all databases to initial demo state?')) return;
     try {
-      await fetch('/api/admin/reset-demo', { method: 'POST' });
+      await authFetch('/api/admin/reset-demo', { method: 'POST' });
       await fetchData();
       alert('Demo data successfully reset!');
     } catch (err) {
@@ -172,7 +184,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
   // Review Update Handler
   const handleReviewUpdate = async (id: string, status: ReviewStatus, notes: string) => {
-    const res = await fetch(`/api/admin/reviews/${id}`, {
+    const res = await authFetch(`/api/admin/reviews/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, internalNotes: notes }),
@@ -185,7 +197,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const handleSaveBranding = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/admin/my-org', {
+      const res = await authFetch('/api/admin/my-org', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -213,7 +225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     if (!newOrgName || !newOrgSlug || !newOrgOwnerEmail) return;
 
     try {
-      const res = await fetch('/api/admin/orgs', {
+      const res = await authFetch('/api/admin/orgs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,7 +259,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     if (!newAdminEmail || !newAdminPassword) return;
 
     try {
-      const res = await fetch('/api/admin/admins', {
+      const res = await authFetch('/api/admin/admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

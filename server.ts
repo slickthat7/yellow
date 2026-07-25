@@ -11,10 +11,10 @@ interface AuthenticatedRequest extends Request {
   token?: string;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+export const app = express();
+const PORT = 3000;
 
+async function startServer() {
   app.use(express.json());
 
   // Helper middleware to extract token
@@ -465,3 +465,5 @@ async function startServer() {
 }
 
 startServer();
+
+export default app;

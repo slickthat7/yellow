@@ -46,6 +46,10 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }
         throw new Error(data.error || 'Login failed. Please check credentials.');
       }
 
+      if (data.token) {
+        localStorage.setItem('rf_token', data.token);
+      }
+
       onLoginSuccess(data.user);
       navigate('/admin');
     } catch (err: any) {
