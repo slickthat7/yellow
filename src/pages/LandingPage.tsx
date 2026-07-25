@@ -83,11 +83,11 @@ export const LandingPage: React.FC = () => {
             </Link>
 
             <Link
-              to="/r/apex-dental"
+              to="/r/yellow-360"
               target="_blank"
               className="px-8 py-4 bg-[#5B00FF] hover:bg-[#4C00C8] text-white border-2 border-slate-900 font-black text-sm rounded-2xl shadow-[4px_4px_0px_0px_rgba(30,27,75,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(30,27,75,1)] transition-all flex items-center space-x-2"
             >
-              <span>Try Demo Client Flow (/r/apex-dental)</span>
+              <span>Try Demo Client Flow (/r/yellow-360)</span>
               <ExternalLink className="w-4 h-4" />
             </Link>
           </div>
@@ -151,7 +151,23 @@ export const LandingPage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link
+              to="/r/yellow-360"
+              target="_blank"
+              className="bg-white border-2 border-slate-900 p-6 rounded-2xl space-y-3 shadow-[4px_4px_0px_0px_rgba(250,204,21,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-4 h-4 rounded-full bg-[#FACC15] border border-slate-900" />
+                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-[#5B00FF] transition-colors" />
+              </div>
+              <h3 className="font-black text-slate-900 text-lg group-hover:text-[#5B00FF] transition-colors">
+                Yellow 360
+              </h3>
+              <p className="text-xs font-mono font-bold text-[#5B00FF]">/r/yellow-360</p>
+              <p className="text-xs text-slate-600 font-medium">Yellow 360 Google Review Backlink</p>
+            </Link>
+
             <Link
               to="/r/apex-dental"
               target="_blank"

@@ -6,6 +6,16 @@ const DEMO_PASSWORD_HASH = bcrypt.hashSync('password123', 10);
 
 const INITIAL_ORGS: Organization[] = [
   {
+    id: 'org-yellow-360',
+    name: 'Yellow 360',
+    slug: 'yellow-360',
+    logoUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&auto=format&fit=crop&q=80',
+    primaryColor: '#5B00FF', // Signature Purple
+    googlePlaceId: 'https://www.google.com/search?q=Yellow+360&oq=yellow+&gs_lcrp=EgZjaHJvbWUqCAgAEEUYJxg7MggIABBFGCcYOzIGCAEQRRg5MgoIAhAAGLEDGIAEMgYIAxBFGDwyBggEEEUYPDIGCAUQRRg8MgYIBhBFGDwyBggHEEUYPNIBCDI1NTVqMGo0qAIAsAIB&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x395fc9ddb15ba5d3:0xa95c7581951a117d,3,,,,',
+    ownerEmail: 'admin@yellow360.com',
+    createdAt: new Date('2026-01-01T08:00:00Z').toISOString(),
+  },
+  {
     id: 'org-apex-1',
     name: 'Apex Dental Studio',
     slug: 'apex-dental',
@@ -183,7 +193,12 @@ class DatabaseStore {
   }
 
   public getOrgBySlug(slug: string): Organization | undefined {
-    return this.orgs.find((o) => o.slug.toLowerCase() === slug.toLowerCase());
+    const clean = slug.toLowerCase().trim();
+    if (['yellow-360', 'yellow360', 'yellow-page', 'yellow-pages', 'yellowpage', 'yellowpages'].includes(clean)) {
+      const yellowOrg = this.orgs.find((o) => o.slug === 'yellow-360');
+      if (yellowOrg) return yellowOrg;
+    }
+    return this.orgs.find((o) => o.slug.toLowerCase() === clean);
   }
 
   public getOrgById(id: string): Organization | undefined {
