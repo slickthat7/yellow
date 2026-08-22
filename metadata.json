@@ -1,6 +1,6 @@
 {
-  "name": "Yellow 360 Reviews",
-  "description": "Multi-tenant Google review collection platform with smart auto-routing for 4-5 star reviews, private feedback protection, and Yellow 360 design theme",
+  "name": "MAST QR - Google Review Standee & Smart QR Platform",
+  "description": "Production-ready QR review collection and standee fulfillment platform with instant PDF generation, Razorpay integration, customer and admin dashboards, and dynamic 5-star Google review routing.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

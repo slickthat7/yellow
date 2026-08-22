@@ -1,112 +1,124 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LandingPage } from './pages/LandingPage.js';
-import { PublicReviewPage } from './pages/PublicReviewPage.js';
-import { AdminLoginPage } from './pages/AdminLoginPage.js';
-import { AdminDashboard } from './pages/AdminDashboard.js';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Navbar } from './components/Navbar.js';
+import { Footer } from './components/Footer.js';
+import { OrderTrackingModal } from './components/OrderTrackingModal.js';
+import { HomePage } from './pages/HomePage.js';
+import { CheckoutPage } from './pages/CheckoutPage.js';
+import { OrderSuccessPage } from './pages/OrderSuccessPage.js';
+import { PublicReviewRouterPage } from './pages/PublicReviewRouterPage.js';
+import { CustomerDashboardPage } from './pages/CustomerDashboardPage.js';
+import { AdminDashboardPage } from './pages/AdminDashboardPage.js';
+import { LoginPage } from './pages/LoginPage.js';
 import { AuthSessionUser } from './types/index.js';
-import { RefreshCw } from 'lucide-react';
 
-export default function App() {
+export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthSessionUser | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isTrackerOpen, setIsTrackerOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  // Restore authenticated session on app load
+  // Load existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('rf_token');
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    fetch('/api/auth/me', { headers })
+    fetch('/api/auth/me')
       .then((res) => {
-        const contentType = res.headers.get('content-type') || '';
-        if (res.ok && contentType.includes('application/json')) {
-          return res.json();
-        }
+        if (res.ok) return res.json();
         throw new Error('Not authenticated');
       })
       .then((data) => {
-        if (data && data.user) {
+        if (data.user) {
           setCurrentUser(data.user);
         }
       })
       .catch(() => {
-        setCurrentUser(null);
-      })
-      .finally(() => {
-        setIsAuthChecking(false);
+        // Not logged in
       });
   }, []);
 
-  const handleLoginSuccess = (user: AuthSessionUser) => {
+  const handleLoginSuccess = (user: AuthSessionUser, token: string) => {
     setCurrentUser(user);
+    setAuthToken(token);
   };
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('rf_token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      await fetch('/api/auth/logout', { method: 'POST', headers });
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      localStorage.removeItem('rf_token');
-      setCurrentUser(null);
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      // ignore
     }
+    setCurrentUser(null);
+    setAuthToken(null);
+    navigate('/admin/login');
   };
 
-  if (isAuthChecking) {
+  // Determine if full-screen mode (e.g. for customer QR scanner `/r/:slug`)
+  const isQrReviewPage = location.pathname.startsWith('/r/');
+
+  if (isQrReviewPage) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <div className="flex items-center space-x-2 text-xs">
-          <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
-          <span>Verifying session...</span>
-        </div>
-      </div>
+      <Routes>
+        <Route path="/r/:slug" element={<PublicReviewRouterPage />} />
+      </Routes>
     );
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Home / Overview Page */}
-        <Route path="/" element={<LandingPage />} />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-purple-600 selection:text-white">
+      {/* Global Navbar */}
+      <Navbar onOpenTracker={() => setIsTrackerOpen(true)} />
 
-        {/* Public Feedback Page */}
-        <Route path="/r/:brandSlug" element={<PublicReviewPage />} />
+      {/* Main App Routes */}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<HomePage onOpenTracker={() => setIsTrackerOpen(true)} />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-success/:id" element={<OrderSuccessPage />} />
+          <Route
+            path="/login"
+            element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+          />
+          <Route
+            path="/admin/login"
+            element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+          />
 
-        {/* Admin Login */}
-        <Route
-          path="/login"
-          element={
-            currentUser ? (
-              <Navigate to="/admin" replace />
-            ) : (
-              <AdminLoginPage onLoginSuccess={handleLoginSuccess} />
-            )
-          }
-        />
+          {/* Protected Customer Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              currentUser ? (
+                <CustomerDashboardPage user={currentUser} onLogout={handleLogout} />
+              ) : (
+                <LoginPage onLoginSuccess={handleLoginSuccess} />
+              )
+            }
+          />
 
-        {/* Admin Dashboard */}
-        <Route
-          path="/admin"
-          element={
-            currentUser ? (
-              <AdminDashboard user={currentUser} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+          {/* Protected Superadmin Dashboard */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              currentUser && currentUser.role === 'SUPERADMIN' ? (
+                <AdminDashboardPage user={currentUser} onLogout={handleLogout} />
+              ) : (
+                <LoginPage onLoginSuccess={handleLoginSuccess} />
+              )
+            }
+          />
 
-        {/* Fallback Route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Catch-all fallback */}
+          <Route path="*" element={<HomePage onOpenTracker={() => setIsTrackerOpen(true)} />} />
+        </Routes>
+      </main>
+
+      {/* Global Footer */}
+      <Footer onOpenTracker={() => setIsTrackerOpen(true)} />
+
+      {/* Order Tracking Modal */}
+      <OrderTrackingModal isOpen={isTrackerOpen} onClose={() => setIsTrackerOpen(false)} />
+    </div>
   );
-}
+};
+
+export default App;

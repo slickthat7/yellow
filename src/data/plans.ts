@@ -1,0 +1,71 @@
+import { PlanDetails } from '../types/index.js';
+
+export const MAST_PLANS: PlanDetails[] = [
+  {
+    id: 'BASIC',
+    name: 'Basic Digital Starter',
+    badge: 'Instant PDF',
+    price: 499,
+    originalPrice: 999,
+    description: 'Instant vector PDF generation + custom QR flyer + immediate email delivery for print-at-home.',
+    standeeType: 'Digital High-Res Printables (A4, A5, Table Tent & Sticker PDFs)',
+    fulfillmentTime: 'Instant (Immediate Email & Download)',
+    features: [
+      'Instant Vector PDF Generation & Ready-to-Print Files',
+      'Instant Email Delivery with Attached Print Assets',
+      'Smart Review Routing (4-5★ to Google, 1-3★ Private Form)',
+      'Custom Business Branding & Target Google URL',
+      'Lifetime Dynamic QR Redirection (Update URL anytime)',
+      'Print-ready templates for A4 Poster, A5 Desk Tent & Square Decal',
+    ],
+  },
+  {
+    id: 'STANDARD',
+    name: 'Standard Standee + Dashboard',
+    badge: 'Most Popular',
+    recommended: true,
+    price: 1499,
+    originalPrice: 2499,
+    description: 'Physical acrylic QR standee shipped to your address + customer dashboard for real-time analytics.',
+    standeeType: 'Premium Acrylic Table Standee (5x7 inch with Scratch-Resistant Gloss Finish)',
+    fulfillmentTime: '3-5 Business Days (Tracked Doorstep Courier)',
+    features: [
+      '1x Premium Acrylic QR Table Standee Delivered to Doorstep',
+      'Customer Dashboard with Live Scan & Feedback Analytics',
+      'Live Shipping Tracking (Delhivery / BlueDart / IndiaPost)',
+      'Update Target Google Review Link anytime without re-printing',
+      'Instant Digital Vector PDF Download & Email Backup Included',
+      'Private Customer Feedback Inbox to Prevent Bad Google Reviews',
+      'Free Tracked Shipping Across India',
+    ],
+  },
+  {
+    id: 'PRO',
+    name: 'Pro NFC + Dual Standee Suite',
+    badge: 'Best Value / VIP',
+    price: 2999,
+    originalPrice: 4999,
+    description: 'Dual NFC Tap + QR Acrylic Standee, 2x Window Vinyl Decals, Express Air Shipping & VIP Suite.',
+    standeeType: 'Dual NFC Tap-to-Review + HD Acrylic Standee + 2x Vinyl Waterproof Stickers',
+    fulfillmentTime: '1-3 Business Days (Priority Air Courier)',
+    features: [
+      '1x Dual NFC Tap-to-Review + QR Premium Acrylic Standee',
+      '2x Heavy-Duty Waterproof Vinyl Counter/Window Decals',
+      'Priority Express Fulfillment & Expedited Air Courier',
+      'Full Customer Dashboard with Advanced Review Management',
+      'Instant Tap & Scan Technology (Works on iPhone & Android)',
+      'Private Negative Review Interceptor & Staff Alert System',
+      'VIP Dedicated Onboarding & Google Business Profile Guide',
+      'Free Express Shipping Included',
+    ],
+  },
+];
+
+export const COURIER_PARTNERS = [
+  'Delhivery Express',
+  'BlueDart Courier',
+  'DTDC Prime',
+  'India Post Speed Post',
+  'FedEx Express',
+  'Ecom Express',
+];
