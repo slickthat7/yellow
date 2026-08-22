@@ -10,6 +10,7 @@ import {
   X,
   Star,
   CheckCircle2,
+  PlayCircle,
 } from 'lucide-react';
 import { MastQrLogo } from './MastQrLogo.js';
 
@@ -36,35 +37,54 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTracker }) => {
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-7 text-sm font-bold text-slate-700">
             <Link
-              to="/#features"
-              className="hover:text-purple-700 transition-colors flex items-center gap-1"
+              to="/features"
+              className={`transition-colors flex items-center gap-1 ${
+                location.pathname === '/features' ? 'text-[#4C1D95]' : 'hover:text-purple-700'
+              }`}
             >
               <span>Why MAST QR</span>
             </Link>
+
             <Link
-              to="/#pricing"
-              className="hover:text-purple-700 transition-colors flex items-center gap-1"
+              to="/plans"
+              className={`transition-colors flex items-center gap-1.5 ${
+                location.pathname === '/plans' ? 'text-[#4C1D95]' : 'hover:text-purple-700'
+              }`}
             >
               <span>Plans & Standees</span>
               <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 rounded-full">
                 ₹499
               </span>
             </Link>
+
             <Link
-              to="/#how-it-works"
-              className="hover:text-purple-700 transition-colors"
+              to="/how-it-works"
+              className={`transition-colors ${
+                location.pathname === '/how-it-works' ? 'text-[#4C1D95]' : 'hover:text-purple-700'
+              }`}
             >
               How It Works
             </Link>
 
-            <button
-              type="button"
-              onClick={onOpenTracker}
-              className="hover:text-purple-700 transition-colors flex items-center gap-1.5 cursor-pointer text-slate-600"
+            <Link
+              to="/demo"
+              className={`transition-colors flex items-center gap-1 ${
+                location.pathname === '/demo' ? 'text-[#4C1D95]' : 'hover:text-purple-700'
+              }`}
+            >
+              <PlayCircle className="w-3.5 h-3.5 text-amber-500" />
+              <span>Live Demo</span>
+            </Link>
+
+            <Link
+              to="/track"
+              className={`transition-colors flex items-center gap-1.5 ${
+                location.pathname === '/track' ? 'text-[#4C1D95]' : 'hover:text-purple-700 text-slate-600'
+              }`}
             >
               <Truck className="w-4 h-4 text-purple-600" />
               <span>Track Order</span>
-            </button>
+            </Link>
           </nav>
 
           {/* Action CTAs */}
@@ -82,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTracker }) => {
               className="px-5 py-2.5 bg-[#4C1D95] hover:bg-[#3B0764] text-white text-xs sm:text-sm font-black rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2"
             >
               <ShoppingBag className="w-4 h-4 text-amber-400" />
-              <span>Order QR Standee</span>
+              <span>Order Standee</span>
             </Link>
           </div>
 
@@ -104,38 +124,56 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenTracker }) => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-xl">
           <Link
-            to="/#features"
+            to="/features"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800"
           >
-            Why MAST QR
+            Why MAST QR (Features)
           </Link>
           <Link
-            to="/#pricing"
+            to="/plans"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800"
           >
             Plans & Standees (from ₹499)
           </Link>
           <Link
-            to="/#how-it-works"
+            to="/how-it-works"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800"
           >
             How It Works
           </Link>
-
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onOpenTracker?.();
-            }}
-            className="w-full text-left py-2 text-sm font-bold text-slate-700 hover:text-purple-800 flex items-center gap-2"
+          <Link
+            to="/demo"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800 flex items-center gap-1.5"
+          >
+            <PlayCircle className="w-4 h-4 text-amber-500" />
+            <span>Interactive Simulator Demo</span>
+          </Link>
+          <Link
+            to="/track"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800 flex items-center gap-2"
           >
             <Truck className="w-4 h-4 text-purple-700" />
             <span>Track Order & Delivery Status</span>
-          </button>
+          </Link>
+          <Link
+            to="/faq"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800"
+          >
+            FAQ & Answers
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-bold text-slate-700 hover:text-purple-800"
+          >
+            Contact & Support
+          </Link>
 
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
             <Link

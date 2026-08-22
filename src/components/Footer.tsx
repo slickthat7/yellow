@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Truck, Sparkles, Star, Mail, Phone, Lock } from 'lucide-react';
+import { ShieldCheck, Truck, Sparkles, Star, Mail, Phone, Lock, HelpCircle, MessageSquare } from 'lucide-react';
 import { MastQrLogo } from './MastQrLogo.js';
 
 interface FooterProps {
@@ -11,9 +11,9 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracker }) => {
   return (
     <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand Col */}
-          <div className="md:col-span-1 space-y-4">
+          <div className="space-y-4">
             <div className="bg-white p-3 rounded-2xl inline-block shadow-md">
               <MastQrLogo size="md" variant="horizontal" />
             </div>
@@ -26,57 +26,68 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracker }) => {
             </div>
           </div>
 
-          {/* Standees & Plans */}
+          {/* Quick Navigation Pages */}
           <div className="space-y-3">
-            <h5 className="text-xs font-black uppercase tracking-wider text-white">Standees & Plans</h5>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <h5 className="text-xs font-black uppercase tracking-wider text-white">Explore & Features</h5>
+            <ul className="space-y-2.5 text-xs text-slate-400">
               <li>
-                <Link to="/checkout?plan=BASIC" className="hover:text-amber-400 transition-colors">
-                  Basic Digital Starter (Instant PDF) - ₹499
+                <Link to="/features" className="hover:text-amber-400 transition-colors">
+                  Why MAST QR & Hardware Specs
                 </Link>
               </li>
               <li>
-                <Link to="/checkout?plan=STANDARD" className="hover:text-amber-400 transition-colors">
-                  Standard Acrylic Standee + Dashboard - ₹1,499
+                <Link to="/plans" className="hover:text-amber-400 transition-colors">
+                  Plans & Standee Formats
                 </Link>
               </li>
               <li>
-                <Link to="/checkout?plan=PRO" className="hover:text-amber-400 transition-colors">
-                  Pro NFC Tap + Acrylic Standee - ₹2,999
+                <Link to="/how-it-works" className="hover:text-amber-400 transition-colors">
+                  How It Works (Setup Guide)
                 </Link>
               </li>
               <li>
-                <Link to="/r/mast-demo" target="_blank" className="hover:text-purple-400 transition-colors flex items-center gap-1">
-                  <span>Live Smart QR Demo</span>
+                <Link to="/demo" className="hover:text-purple-400 transition-colors flex items-center gap-1 font-bold text-amber-300">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>Live Review Simulator Demo</span>
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="hover:text-amber-400 transition-colors">
+                  Frequently Asked Questions
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Quick Links */}
+          {/* Order Standees & Tracking */}
           <div className="space-y-3">
-            <h5 className="text-xs font-black uppercase tracking-wider text-white">Customer Support</h5>
-            <ul className="space-y-2 text-xs text-slate-400">
+            <h5 className="text-xs font-black uppercase tracking-wider text-white">Orders & Support</h5>
+            <ul className="space-y-2.5 text-xs text-slate-400">
               <li>
-                <button
-                  type="button"
-                  onClick={onOpenTracker}
-                  className="hover:text-amber-400 transition-colors text-left flex items-center gap-1"
-                >
+                <Link to="/track" className="hover:text-amber-400 transition-colors flex items-center gap-1.5 font-bold text-purple-300">
                   <Truck className="w-3.5 h-3.5 text-amber-400" />
                   <span>Track Courier Shipment</span>
-                </button>
-              </li>
-              <li>
-                <Link to="/admin/login" className="hover:text-white transition-colors">
-                  Client Dashboard Login
                 </Link>
               </li>
               <li>
-                <span className="text-slate-500">Email: fulfillment@mastqr.com</span>
+                <Link to="/checkout?plan=STANDARD" className="hover:text-amber-400 transition-colors">
+                  Order Standard Acrylic Standee (₹1,499)
+                </Link>
               </li>
               <li>
-                <span className="text-slate-500">Support Hours: Mon-Sat 9AM - 8PM IST</span>
+                <Link to="/checkout?plan=PRO" className="hover:text-amber-400 transition-colors">
+                  Order Pro NFC Standee (₹2,999)
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-amber-400 transition-colors">
+                  Contact Merchant Support
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/login" className="hover:text-white transition-colors">
+                  Client & Admin Dashboard Login
+                </Link>
               </li>
             </ul>
           </div>
@@ -90,10 +101,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracker }) => {
                 <span>256-Bit Razorpay Payment</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
-                Production-grade server-side verification. UPI, Credit/Debit Cards, NetBanking supported.
+                Production-grade server-side verification. UPI, Cards, and NetBanking supported.
               </p>
               <div className="pt-2 border-t border-slate-700/60 flex items-center gap-2 text-[10px] text-slate-400">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>100% Replacement Guarantee on Transit Damage</span>
               </div>
             </div>
@@ -104,8 +115,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracker }) => {
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} MAST QR Inc. All rights reserved. SCAN • RATE • IMPROVE • GROW.</p>
           <div className="flex items-center gap-4">
+            <Link to="/faq" className="hover:text-slate-300">FAQ</Link>
+            <Link to="/contact" className="hover:text-slate-300">Contact</Link>
             <span className="flex items-center gap-1 text-slate-400">
-              <span>Made for Indian Businesses with</span>
+              <span>Made in India</span>
               <span className="text-red-500">❤️</span>
             </span>
           </div>

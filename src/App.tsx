@@ -2,8 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar.js';
 import { Footer } from './components/Footer.js';
+import { ScrollToTop } from './components/ScrollToTop.js';
 import { OrderTrackingModal } from './components/OrderTrackingModal.js';
 import { HomePage } from './pages/HomePage.js';
+import { FeaturesPage } from './pages/FeaturesPage.js';
+import { PlansPage } from './pages/PlansPage.js';
+import { HowItWorksPage } from './pages/HowItWorksPage.js';
+import { DemoPage } from './pages/DemoPage.js';
+import { TrackOrderPage } from './pages/TrackOrderPage.js';
+import { FaqPage } from './pages/FaqPage.js';
+import { ContactPage } from './pages/ContactPage.js';
 import { CheckoutPage } from './pages/CheckoutPage.js';
 import { OrderSuccessPage } from './pages/OrderSuccessPage.js';
 import { PublicReviewRouterPage } from './pages/PublicReviewRouterPage.js';
@@ -65,6 +73,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-purple-600 selection:text-white">
+      {/* Scroll restoration helper */}
+      <ScrollToTop />
+
       {/* Global Navbar */}
       <Navbar onOpenTracker={() => setIsTrackerOpen(true)} />
 
@@ -72,6 +83,15 @@ export const App: React.FC = () => {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<HomePage onOpenTracker={() => setIsTrackerOpen(true)} />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/plans" element={<PlansPage />} />
+          <Route path="/pricing" element={<PlansPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/demo" element={<DemoPage />} />
+          <Route path="/track" element={<TrackOrderPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
           <Route
