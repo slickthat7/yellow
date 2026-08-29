@@ -179,11 +179,11 @@ export const PlansPage: React.FC = () => {
                 </tr>
                 <tr>
                   <td className="p-4 font-bold">Pan-India Express Delivery</td>
-                  <td className="p-4 text-slate-400">Instant Download</td>
+                  <td className="p-4 text-slate-400">—</td>
                   <td className="p-4 bg-purple-50/50 dark:bg-purple-950/20 text-emerald-600 font-bold">
-                    Free (3-5 Days)
+                    Free (7 Days)
                   </td>
-                  <td className="p-4 text-emerald-600 font-bold">Priority Air (2-3 Days)</td>
+                  <td className="p-4 text-emerald-600 font-bold">Free (7 Days)</td>
                 </tr>
                 <tr>
                   <td className="p-4 font-bold">Dynamic URL Redirection</td>
@@ -199,7 +199,7 @@ export const PlansPage: React.FC = () => {
                   <td className="p-4 bg-purple-50/50 dark:bg-purple-950/20 text-emerald-600 font-bold">
                     Included
                   </td>
-                  <td className="p-4 text-emerald-600 font-bold">Included + WhatsApp Alerts</td>
+                  <td className="p-4 text-emerald-600 font-bold">Included</td>
                 </tr>
               </tbody>
             </table>

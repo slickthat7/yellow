@@ -34,15 +34,27 @@ export const CheckoutPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const planParam = (searchParams.get('plan') as PlanType) || 'STANDARD';
-  const [selectedPlanId, setSelectedPlanId] = useState<PlanType>(
-    ['BASIC', 'STANDARD', 'PRO'].includes(planParam) ? planParam : 'STANDARD'
+  const parsePlanParam = (param: string | null): PlanType => {
+    const clean = (param || '').toUpperCase().trim();
+    if (clean === 'BASIC' || clean === 'DIGITAL') return 'BASIC';
+    if (clean === 'PRO' || clean === 'NFC') return 'PRO';
+    return 'STANDARD';
+  };
+
+  const [selectedPlanId, setSelectedPlanId] = useState<PlanType>(() =>
+    parsePlanParam(searchParams.get('plan'))
   );
+
+  // Sync plan state immediately whenever URL query parameter changes
+  useEffect(() => {
+    const newPlan = parsePlanParam(searchParams.get('plan'));
+    setSelectedPlanId(newPlan);
+  }, [searchParams]);
 
   // Business Form State
   const [businessName, setBusinessName] = useState('');
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
-  const [tagline, setTagline] = useState('Scan to rate us 5 stars on Google');
+  const [tagline] = useState('Scan to rate us 5 stars on Google');
   const [primaryColor, setPrimaryColor] = useState('#581C87');
 
   // Customer Contact State
@@ -369,19 +381,6 @@ export const CheckoutPage: React.FC = () => {
                     <p className="text-[11px] text-slate-400 mt-1">
                       Happy customers (4-5★) will be instantly routed to this Google URL. You can update this anytime in your dashboard without re-printing!
                     </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Standee Tagline / Call to Action
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Scan to rate your coffee on Google"
-                      value={tagline}
-                      onChange={(e) => setTagline(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
-                    />
                   </div>
                 </div>
               </div>

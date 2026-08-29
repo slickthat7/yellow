@@ -22,7 +22,7 @@ const FAQS: FaqItem[] = [
   {
     category: 'Hardware & Delivery',
     question: 'How long does delivery take within India?',
-    answer: 'Standard Acrylic Standees are manufactured, UV printed, and dispatched within 24-48 hours. Express courier delivery takes 3 to 5 business days anywhere across India (Delhivery, BlueDart, or DTDC). You will receive SMS & WhatsApp tracking notifications.',
+    answer: 'Standard Acrylic Standees are manufactured, UV printed, and dispatched for express courier delivery within 7 days anywhere across India (Delhivery, BlueDart, or DTDC). You will receive live courier tracking notifications.',
   },
   {
     category: 'Hardware & Delivery',

@@ -62,7 +62,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onOpenTracker }) => {
 
               {/* Subtitle */}
               <p className="text-base sm:text-lg text-purple-100/90 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
-                Get custom acrylic QR standees delivered to your shop counter. Smart review routing sends happy customers straight to Google while catching negative feedback privately.
+                Get custom acrylic QR standees delivered to your shop counter. Smart review routing sends happy customers straight to your Google Page
               </p>
 
               {/* Quick Feature Bullets */}

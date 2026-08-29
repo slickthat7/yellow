@@ -28,7 +28,7 @@ export const MAST_PLANS: PlanDetails[] = [
     originalPrice: 2499,
     description: 'Physical acrylic QR standee shipped to your address + customer dashboard for real-time analytics.',
     standeeType: 'Premium Acrylic Table Standee (5x7 inch with Scratch-Resistant Gloss Finish)',
-    fulfillmentTime: '3-5 Business Days (Tracked Doorstep Courier)',
+    fulfillmentTime: '7 Days (Tracked Doorstep Courier)',
     features: [
       '1x Premium Acrylic QR Table Standee Delivered to Doorstep',
       'Customer Dashboard with Live Scan & Feedback Analytics',
@@ -47,7 +47,7 @@ export const MAST_PLANS: PlanDetails[] = [
     originalPrice: 4999,
     description: 'Dual NFC Tap + QR Acrylic Standee, 2x Window Vinyl Decals, Express Air Shipping & VIP Suite.',
     standeeType: 'Dual NFC Tap-to-Review + HD Acrylic Standee + 2x Vinyl Waterproof Stickers',
-    fulfillmentTime: '1-3 Business Days (Priority Air Courier)',
+    fulfillmentTime: '7 Days (Priority Courier)',
     features: [
       '1x Dual NFC Tap-to-Review + QR Premium Acrylic Standee',
       '2x Heavy-Duty Waterproof Vinyl Counter/Window Decals',

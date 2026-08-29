@@ -57,7 +57,7 @@ export const TrackOrderPage: React.FC = () => {
             Track Standee Courier Shipment
           </h1>
           <p className="text-xs sm:text-sm text-purple-100 max-w-xl mx-auto">
-            Enter your MAST QR Order Reference (e.g. <code className="bg-white/10 px-1.5 py-0.5 rounded text-amber-300 font-mono">MQ-1041</code>) or your registered mobile phone number.
+            Enter your MAST QR Order Reference Number or your 10-digit registered mobile phone number.
           </p>
         </div>
       </section>
@@ -74,7 +74,7 @@ export const TrackOrderPage: React.FC = () => {
                 required
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Enter Order ID (e.g. MQ-1041 or 9876543210)"
+                placeholder="Enter Order Reference Number or 10-Digit Mobile"
                 className="w-full pl-10 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-purple-600 font-bold"
               />
             </div>

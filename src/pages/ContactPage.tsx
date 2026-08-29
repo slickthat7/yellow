@@ -69,7 +69,9 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white">Direct Phone Support</p>
-                    <p className="text-slate-500">+91 98765 43210 (Mon-Sat 9AM-8PM)</p>
+                    <p className="text-slate-500 font-mono font-bold text-slate-700 dark:text-slate-200">
+                      +91-9081232224 <span className="font-normal text-slate-500">(Mon-Sat 9AM-8PM)</span>
+                    </p>
                   </div>
                 </div>
 
@@ -80,16 +82,6 @@ export const ContactPage: React.FC = () => {
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white">Turnaround Time</p>
                     <p className="text-slate-500">Replies within 2 hours during working days</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">Manufacturing & Dispatch Hub</p>
-                    <p className="text-slate-500">MAST QR Print Logistics Park, Bengaluru & Mumbai, India</p>
                   </div>
                 </div>
               </div>
