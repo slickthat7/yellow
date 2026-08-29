@@ -45,11 +45,6 @@ export const TrackOrderPage: React.FC = () => {
     }
   };
 
-  const setSampleQuery = (sample: string) => {
-    setSearchQuery(sample);
-    handleSearch(undefined, sample);
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Header Banner */}
@@ -92,25 +87,6 @@ export const TrackOrderPage: React.FC = () => {
               <span>{loading ? 'Searching...' : 'Track Package'}</span>
             </button>
           </form>
-
-          {/* Quick Demo Pre-fills */}
-          <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-400 font-bold">Try Sample Orders:</span>
-            <button
-              type="button"
-              onClick={() => setSampleQuery('MQ-1041')}
-              className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950 text-[#4C1D95] dark:text-purple-300 font-mono font-bold hover:bg-purple-100 transition-colors"
-            >
-              MQ-1041 (In Transit)
-            </button>
-            <button
-              type="button"
-              onClick={() => setSampleQuery('MQ-1042')}
-              className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono font-bold hover:bg-amber-100 transition-colors"
-            >
-              MQ-1042 (Laser Cutting)
-            </button>
-          </div>
         </div>
 
         {/* Error Message */}

@@ -45,11 +45,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleQuickFill = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('mastqr2026');
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-4 text-center">
@@ -118,27 +113,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* Quick Access Helper */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 block text-center uppercase tracking-wider">
-              Quick Demo Access
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@mastqr.com')}
-                className="p-2 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 rounded-xl border border-purple-200 dark:border-purple-800 font-bold hover:bg-purple-100 text-[11px]"
-              >
-                Client Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('superadmin@mastqr.com')}
-                className="p-2 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-800 font-bold hover:bg-amber-100 text-[11px]"
-              >
-                Superadmin Lead
-              </button>
-            </div>
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Secure 256-bit Encrypted Admin Portal</span>
           </div>
         </div>
       </div>
