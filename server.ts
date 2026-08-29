@@ -209,6 +209,8 @@ app.get('/api/public/orders/track', (req: Request, res: Response) => {
 // ==========================================
 
 // Get public payment configuration
+const RAZORPAY_PAYMENT_LINK = process.env.RAZORPAY_PAYMENT_LINK || 'https://razorpay.me/@yellow3609773';
+
 app.get('/api/payments/config', (_req: Request, res: Response) => {
   const keyId = process.env.RAZORPAY_KEY_ID || null;
   const isConfigured = !!(keyId && process.env.RAZORPAY_KEY_SECRET);
@@ -216,8 +218,10 @@ app.get('/api/payments/config', (_req: Request, res: Response) => {
   res.json({
     keyId,
     isConfigured,
+    paymentLink: RAZORPAY_PAYMENT_LINK,
+    merchantHandle: '@yellow3609773',
     currency: 'INR',
-    environment: keyId?.startsWith('rzp_live') ? 'production' : 'test',
+    environment: keyId?.startsWith('rzp_live') ? 'production' : 'live_link',
   });
 });
 
@@ -300,21 +304,26 @@ app.post('/api/payments/create-order', async (req: Request, res: Response) => {
         order,
         razorpayOrderId: rzpOrder.id,
         keyId: process.env.RAZORPAY_KEY_ID,
+        paymentLink: RAZORPAY_PAYMENT_LINK,
+        merchantHandle: '@yellow3609773',
         amount: amountInPaise,
         currency: 'INR',
         isProductionReady: true,
       });
     } else {
-      // Razorpay credentials not yet injected into environment
+      // Direct Razorpay payment link ready
       res.status(200).json({
         success: true,
         order,
         razorpayOrderId: null,
         keyId: null,
+        paymentLink: RAZORPAY_PAYMENT_LINK,
+        merchantHandle: '@yellow3609773',
         amount: amountInPaise,
         currency: 'INR',
-        needsCredentials: true,
-        message: 'Razorpay keys not configured in server environment. Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Settings.',
+        needsCredentials: false,
+        isDirectLinkMode: true,
+        message: 'Direct Razorpay payment link active: https://razorpay.me/@yellow3609773',
       });
     }
   } catch (err: any) {

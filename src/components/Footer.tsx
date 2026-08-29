@@ -96,12 +96,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTracker }) => {
           <div className="space-y-3">
             <h5 className="text-xs font-black uppercase tracking-wider text-white">Security & Guarantee</h5>
             <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                <Lock className="w-4 h-4 text-emerald-400" />
-                <span>256-Bit Razorpay Payment</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                  <Lock className="w-4 h-4 text-emerald-400" />
+                  <span>Razorpay Verified</span>
+                </div>
+                <a
+                  href="https://razorpay.me/@yellow3609773"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/60 hover:text-white hover:border-purple-600 transition-colors"
+                >
+                  @yellow3609773
+                </a>
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
-                Production-grade server-side verification. UPI, Cards, and NetBanking supported.
+                UPI (GPay, PhonePe, Paytm, BHIM), Cards & NetBanking powered by Razorpay.
               </p>
               <div className="pt-2 border-t border-slate-700/60 flex items-center gap-2 text-[10px] text-slate-400">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />

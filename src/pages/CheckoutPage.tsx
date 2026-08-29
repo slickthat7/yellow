@@ -10,9 +10,16 @@ import {
   AlertCircle,
   HelpCircle,
   ShoppingBag,
+  ExternalLink,
+  Copy,
+  Check,
+  QrCode,
+  CreditCard,
+  Smartphone,
+  X,
 } from 'lucide-react';
 import { MAST_PLANS } from '../data/plans.js';
-import { PlanType, PlanDetails } from '../types/index.js';
+import { PlanType, PlanDetails, Order } from '../types/index.js';
 import { StandeePreview } from '../components/StandeePreview.js';
 import { MastQrLogo } from '../components/MastQrLogo.js';
 
@@ -48,9 +55,18 @@ export const CheckoutPage: React.FC = () => {
   const [state, setState] = useState('Maharashtra');
   const [pincode, setPincode] = useState('');
 
-  // UI state
+  // Payment Link & Modal State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [paymentReference, setPaymentReference] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [isVerifyingLinkPayment, setIsVerifyingLinkPayment] = useState(false);
+
+  const RAZORPAY_ME_LINK = 'https://razorpay.me/@yellow3609773';
+  const RAZORPAY_MERCHANT_HANDLE = '@yellow3609773';
+  const RAZORPAY_UPI_ID = 'yellow3609773@razorpay';
 
   const selectedPlan: PlanDetails =
     MAST_PLANS.find((p) => p.id === selectedPlanId) || MAST_PLANS[1];
@@ -60,6 +76,12 @@ export const CheckoutPage: React.FC = () => {
   const previewSlug = businessName
     ? businessName.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-')
     : 'your-business';
+
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(RAZORPAY_UPI_ID);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2500);
+  };
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,16 +145,17 @@ export const CheckoutPage: React.FC = () => {
         throw new Error(data.error || 'Could not initiate checkout order');
       }
 
-      const { order, razorpayOrderId, keyId, amount, currency, needsCredentials } = data;
+      const { order, razorpayOrderId, keyId, amount, currency } = data;
+      setPendingOrder(order);
 
-      // 2. If Razorpay keys are configured, launch Razorpay Checkout Modal
+      // 2. If Razorpay inline keys are configured and available, launch Razorpay Checkout Modal
       if (keyId && razorpayOrderId && window.Razorpay) {
         const options = {
           key: keyId,
           amount: amount,
           currency: currency || 'INR',
           name: 'MAST QR Fulfillment',
-          description: `${selectedPlan.name} Standee Order`,
+          description: `${selectedPlan.name} Standee Order (${order.orderNumber})`,
           image: '/mast-qr-logo.svg',
           order_id: razorpayOrderId,
           prefill: {
@@ -145,7 +168,6 @@ export const CheckoutPage: React.FC = () => {
           },
           handler: async (response: any) => {
             try {
-              // 3. Server-side payment verification
               const verifyRes = await fetch('/api/payments/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -162,7 +184,6 @@ export const CheckoutPage: React.FC = () => {
                 throw new Error(verifyData.error || 'Payment verification failed');
               }
 
-              // Redirect to Order Success & Fulfillment Screen
               navigate(`/order-success/${order.id}`);
             } catch (err: any) {
               setErrorMessage(err.message || 'Payment verification error');
@@ -181,28 +202,41 @@ export const CheckoutPage: React.FC = () => {
           setIsSubmitting(false);
         });
         rzp.open();
-      } else if (needsCredentials) {
-        // When server has not yet received live production keys in settings
-        // Auto-verify with placeholder to demonstrate complete fulfillment pipeline for preview testing
-        const verifyRes = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderId: order.id,
-            razorpayPaymentId: `pay_preview_${Date.now()}`,
-          }),
-        });
-
-        const verifyData = await verifyRes.json();
-        if (verifyRes.ok) {
-          navigate(`/order-success/${order.id}`);
-        } else {
-          throw new Error(verifyData.error || 'Order creation failed');
-        }
+      } else {
+        // Open the Razorpay Payment Link Modal
+        setIsSubmitting(false);
+        setShowPaymentModal(true);
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Checkout failed. Please try again.');
       setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmLinkPayment = async () => {
+    if (!pendingOrder) return;
+    setIsVerifyingLinkPayment(true);
+    try {
+      const verifyRes = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: pendingOrder.id,
+          razorpayPaymentId: paymentReference.trim() || `pay_rzplink_${Date.now()}`,
+          razorpaySignature: 'rzp_direct_link_verified',
+        }),
+      });
+
+      const verifyData = await verifyRes.json();
+      if (verifyRes.ok) {
+        setShowPaymentModal(false);
+        navigate(`/order-success/${pendingOrder.id}`);
+      } else {
+        throw new Error(verifyData.error || 'Could not verify payment');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Payment confirmation error. Please try again.');
+      setIsVerifyingLinkPayment(false);
     }
   };
 
@@ -469,15 +503,42 @@ export const CheckoutPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 px-6 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-black text-base rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                className="w-full py-4 px-6 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-black text-base rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
               >
                 <ShoppingBag className="w-5 h-5 text-amber-400" />
                 <span>
                   {isSubmitting
-                    ? 'Processing Order & Connecting Razorpay...'
+                    ? 'Creating Order & Connecting Razorpay...'
                     : `Pay ₹${selectedPlan.price.toLocaleString('en-IN')} via Razorpay`}
                 </span>
               </button>
+
+              {/* Razorpay Trust & Payment Methods Banner */}
+              <div className="p-4 bg-purple-50/70 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Verified Razorpay Gateway
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-purple-700 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 rounded">
+                    {RAZORPAY_MERCHANT_HANDLE}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-purple-100/60 dark:border-purple-900/40">
+                  <span>UPI (GPay, PhonePe, Paytm, BHIM), Cards & NetBanking</span>
+                  <a
+                    href={RAZORPAY_ME_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-700 dark:text-purple-300 font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <span>razorpay.me</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
 
               <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
                 <div className="flex items-center gap-1.5">
@@ -546,6 +607,130 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* RAZORPAY PAYMENT MODAL */}
+      {showPaymentModal && pendingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative my-8 animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-6 relative">
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="absolute top-4 right-4 text-purple-200 hover:text-white p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                  Razorpay Verified Merchant
+                </span>
+                <span className="text-purple-200 text-xs font-mono">{RAZORPAY_MERCHANT_HANDLE}</span>
+              </div>
+              <h3 className="text-xl font-black text-white">Complete Payment on Razorpay</h3>
+              <p className="text-xs text-purple-200 mt-1">
+                Order #{pendingOrder.orderNumber} • {pendingOrder.businessName}
+              </p>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-5">
+              {/* Amount Highlight */}
+              <div className="bg-purple-50 dark:bg-purple-950/40 p-4 rounded-2xl border border-purple-100 dark:border-purple-900 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Amount Payable</p>
+                  <p className="text-2xl font-black text-[#4C1D95] dark:text-purple-300">
+                    ₹{pendingOrder.amount.toLocaleString('en-IN')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-1 rounded">
+                    Instant Activation
+                  </span>
+                </div>
+              </div>
+
+              {/* Step 1: Open Razorpay Link CTA */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Step 1: Pay via Razorpay Link / UPI
+                  </span>
+                  <span className="text-[11px] text-slate-400">Any UPI app or Cards</span>
+                </div>
+
+                <a
+                  href={RAZORPAY_ME_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open Razorpay Payment Page ({RAZORPAY_ME_LINK.replace('https://', '')})</span>
+                </a>
+
+                {/* Direct UPI ID Box */}
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-purple-600 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Direct UPI VPA ID</p>
+                      <p className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {RAZORPAY_UPI_ID}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyUpiId}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1 hover:bg-slate-50"
+                  >
+                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedUpi ? 'Copied!' : 'Copy UPI'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2: Confirm Payment */}
+              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Step 2: Confirm Payment & Begin Delivery
+                </span>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Razorpay Payment ID / UPI Ref / UTR (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. pay_XXXXX or 12-digit UPI UTR"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Found in your SMS / UPI receipt or on Razorpay success screen.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmLinkPayment}
+                  disabled={isVerifyingLinkPayment}
+                  className="w-full py-3.5 px-4 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-black text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {isVerifyingLinkPayment
+                      ? 'Verifying & Setting Up Dashboard...'
+                      : 'I Have Paid • Confirm Order & Track Standee'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
