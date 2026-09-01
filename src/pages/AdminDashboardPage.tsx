@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Truck,
-  TrendingUp,
-  Package,
-  CheckCircle2,
+  Building2,
+  LogOut,
+  Search,
+  X,
+  Plus,
+  Barcode as BarcodeIcon,
+  Banknote,
+  Smartphone,
+  CreditCard,
   Clock,
-  ExternalLink,
   Edit,
   Save,
-  LogOut,
-  Building2,
-  Users,
-  Search,
-  AlertCircle,
-  X,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import {
   AuthSessionUser,
@@ -25,6 +26,9 @@ import {
 } from '../types/index.js';
 import { MastQrLogo } from '../components/MastQrLogo.js';
 import { COURIER_PARTNERS } from '../data/plans.js';
+import { BarcodeQrGeneratorModal } from '../components/BarcodeQrGeneratorModal.js';
+import { CreateProfileModal } from '../components/CreateProfileModal.js';
+import { CollectManualPaymentModal } from '../components/CollectManualPaymentModal.js';
 
 interface AdminDashboardProps {
   user: AuthSessionUser;
@@ -35,7 +39,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
   const [analytics, setAnalytics] = useState<SuperadminAnalytics | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [activeTab, setActiveTab] = useState<'orders' | 'orgs' | 'overview'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'orgs' | 'barcode-studio'>('orders');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
 
   // Fulfillment Modal State
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -45,6 +51,22 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
   const [trackingUrl, setTrackingUrl] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // New Superadmin Modals
+  const [isCreateProfileOpen, setIsCreateProfileOpen] = useState(false);
+  const [barcodeModalProps, setBarcodeModalProps] = useState<{
+    isOpen: boolean;
+    initialValue: string;
+    initialTitle: string;
+    storeSlug: string;
+    orderId?: string;
+  }>({
+    isOpen: false,
+    initialValue: '',
+    initialTitle: '',
+    storeSlug: '',
+  });
+  const [manualPaymentOrder, setManualPaymentOrder] = useState<Order | null>(null);
 
   const fetchAdminData = async () => {
     try {
@@ -116,6 +138,122 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
     }
   };
 
+  const openBarcodeStudio = (order?: Order, org?: Organization) => {
+    if (order) {
+      setBarcodeModalProps({
+        isOpen: true,
+        initialValue: order.barcode || `MQ-BC-${Math.floor(100000 + Math.random() * 900000)}`,
+        initialTitle: `Standee Barcode: ${order.orderNumber} (${order.businessName})`,
+        storeSlug: order.businessSlug,
+        orderId: order.id,
+      });
+    } else if (org) {
+      setBarcodeModalProps({
+        isOpen: true,
+        initialValue: org.customBarcode || `MQ-BC-${org.slug.toUpperCase().slice(0, 6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+        initialTitle: `Store Barcode & QR: ${org.name}`,
+        storeSlug: org.slug,
+      });
+    } else {
+      setBarcodeModalProps({
+        isOpen: true,
+        initialValue: `MQ-BC-${Math.floor(100000 + Math.random() * 900000)}`,
+        initialTitle: 'Custom Barcode & Standee SKU Studio',
+        storeSlug: '',
+      });
+    }
+  };
+
+  const handleAssignBarcodeToOrder = async (barcode: string, format: string) => {
+    if (!barcodeModalProps.orderId) return;
+    try {
+      const res = await fetch(`/api/admin/orders/${barcodeModalProps.orderId}/barcode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode, barcodeFormat: format }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((prev) => prev.map((o) => (o.id === barcodeModalProps.orderId ? data.order : o)));
+      }
+    } catch (err) {
+      console.error('Error saving barcode:', err);
+    }
+  };
+
+  const handlePaymentCollected = (updatedOrder: Order) => {
+    setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
+    fetchAdminData();
+  };
+
+  // Filter Orders
+  const filteredOrders = orders.filter((o) => {
+    const matchesSearch =
+      o.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.barcode && o.barcode.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (paymentFilter === 'PAID') {
+      return o.paymentStatus === 'COMPLETED';
+    }
+    if (paymentFilter === 'PENDING') {
+      return o.paymentStatus !== 'COMPLETED';
+    }
+    return true;
+  });
+
+  const getPaymentBadge = (order: Order) => {
+    if (order.paymentStatus === 'COMPLETED') {
+      if (order.paymentMethod === 'MANUAL_CASH') {
+        return (
+          <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-emerald-100 text-emerald-900 flex items-center gap-1">
+            <Banknote className="w-3 h-3" />
+            <span>Cash (Manual)</span>
+          </span>
+        );
+      }
+      if (order.paymentMethod === 'MANUAL_UPI') {
+        return (
+          <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-indigo-100 text-indigo-900 flex items-center gap-1">
+            <Smartphone className="w-3 h-3" />
+            <span>UPI Direct (Manual)</span>
+          </span>
+        );
+      }
+      if (order.paymentMethod === 'MANUAL_BANK_TRANSFER') {
+        return (
+          <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-blue-100 text-blue-900 flex items-center gap-1">
+            <CreditCard className="w-3 h-3" />
+            <span>NEFT / Bank (Manual)</span>
+          </span>
+        );
+      }
+      if (order.paymentMethod === 'WAIVED') {
+        return (
+          <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-slate-200 text-slate-800">
+            Waived / Comp
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-purple-100 text-purple-900 flex items-center gap-1">
+          <CreditCard className="w-3 h-3" />
+          <span>Razorpay Online</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-amber-100 text-amber-900 flex items-center gap-1">
+        <Clock className="w-3 h-3" />
+        <span>Pending Payment</span>
+      </span>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Header */}
@@ -127,14 +265,32 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                 <MastQrLogo size="sm" variant="horizontal" />
               </Link>
               <span className="text-xs font-black text-amber-900 bg-amber-100 dark:bg-amber-950 px-2.5 py-1 rounded-lg uppercase">
-                Superadmin Lead
+                Superadmin Operations HQ
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
+              <button
+                type="button"
+                onClick={() => openBarcodeStudio()}
+                className="hidden md:flex px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700"
+              >
+                <BarcodeIcon className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
+                <span>Barcode Studio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateProfileOpen(true)}
+                className="px-4 py-2 bg-[#4C1D95] hover:bg-[#3B0764] text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Create Client Profile</span>
+              </button>
+
+              <div className="text-right hidden sm:block border-l border-slate-200 dark:border-slate-800 pl-3">
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.name}</p>
-                <p className="text-[10px] text-slate-400">MAST QR Operations HQ</p>
+                <p className="text-[10px] text-slate-400">Superadmin</p>
               </div>
 
               <button
@@ -153,86 +309,129 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'orders'
-                ? 'bg-[#4C1D95] text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Truck className="w-3.5 h-3.5" />
-            <span>Order Fulfillment Pipeline ({orders.length})</span>
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'orders'
+                  ? 'bg-[#4C1D95] text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Order Fulfillment & Payments ({orders.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('orgs')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'orgs'
+                  ? 'bg-[#4C1D95] text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Client Store Profiles ({orgs.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openBarcodeStudio()}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeTab === 'barcode-studio'
+                  ? 'bg-[#4C1D95] text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <BarcodeIcon className="w-3.5 h-3.5" />
+              <span>Barcode & Standee Studio</span>
+            </button>
+          </div>
 
           <button
             type="button"
-            onClick={() => setActiveTab('orgs')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-              activeTab === 'orgs'
-                ? 'bg-[#4C1D95] text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+            onClick={fetchAdminData}
+            title="Refresh Data"
+            className="p-2 text-slate-500 hover:text-purple-700 dark:hover:text-purple-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Client Stores ({orgs.length})</span>
+            <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Global Metric Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Total Revenue
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+        {/* Quick KPI Overview */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span className="text-xs font-bold text-slate-500 block">Total Revenue</span>
+            <p className="text-2xl sm:text-3xl font-black text-purple-900 dark:text-purple-300">
               ₹{(analytics?.totalRevenue || 0).toLocaleString('en-IN')}
             </p>
-            <p className="text-[10px] text-emerald-600 font-bold">Via Razorpay Gateway</p>
+            <p className="text-[10px] text-slate-400 font-bold">Online + Offline Paid</p>
           </div>
 
-          <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Total Orders
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-[#4C1D95] dark:text-purple-400">
-              {orders.length}
+          <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span className="text-xs font-bold text-slate-500 block">Total Orders</span>
+            <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {analytics?.totalOrders || orders.length}
             </p>
-            <p className="text-[10px] text-purple-600 font-bold">Standee & Digital Starter</p>
-          </div>
-
-          <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Pending Shipments
-            </span>
-            <p className="text-2xl sm:text-3xl font-black text-amber-500">
-              {orders.filter((o) => o.orderStatus === 'PRINTING' || o.orderStatus === 'QUALITY_CHECK').length}
+            <p className="text-[10px] text-emerald-600 font-bold">
+              {orders.filter((o) => o.paymentStatus === 'COMPLETED').length} Paid / Active
             </p>
-            <p className="text-[10px] text-amber-600 font-bold">In UV Printing Queue</p>
           </div>
 
-          <div className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Active Standee QRs
-            </span>
+          <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span className="text-xs font-bold text-slate-500 block">Standees in Dispatch</span>
+            <p className="text-2xl sm:text-3xl font-black text-amber-600">
+              {orders.filter((o) => o.orderStatus === 'PRINTING' || o.orderStatus === 'SHIPPED').length}
+            </p>
+            <p className="text-[10px] text-slate-400 font-bold">UV Print & In-Transit</p>
+          </div>
+
+          <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span className="text-xs font-bold text-slate-500 block">Live Storefronts</span>
             <p className="text-2xl sm:text-3xl font-black text-emerald-600">{orgs.length}</p>
-            <p className="text-[10px] text-slate-400 font-bold">Pan-India Businesses</p>
+            <p className="text-[10px] text-slate-400 font-bold">Active Profiles</p>
           </div>
         </div>
 
         {/* TAB 1: ORDER FULFILLMENT PIPELINE */}
         {activeTab === 'orders' && (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-150">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden animate-in fade-in duration-150 space-y-4">
+            {/* Header & Filter Bar */}
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Order Fulfillment & Courier Dispatch
+                  Order Fulfillment & Payment Pipeline
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Update printing stage, assign courier partner, and log AWB tracking numbers.
+                  Manage UV print fabrication, assign custom standee barcodes, collect offline manual payments, and dispatch couriers.
                 </p>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, #, barcode..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-purple-600"
+                  />
+                </div>
+
+                <select
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value as any)}
+                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200"
+                >
+                  <option value="ALL">All Payments</option>
+                  <option value="PAID">Paid Only (Manual/Online)</option>
+                  <option value="PENDING">Pending Payment</option>
+                </select>
               </div>
             </div>
 
@@ -240,95 +439,145 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="px-6 py-4">Order #</th>
+                    <th className="px-6 py-4">Order # & Barcode</th>
                     <th className="px-6 py-4">Customer & Store</th>
-                    <th className="px-6 py-4">Plan & Amount</th>
-                    <th className="px-6 py-4">Shipping Destination</th>
-                    <th className="px-6 py-4">Fulfillment Status</th>
+                    <th className="px-6 py-4">Hardware Plan</th>
+                    <th className="px-6 py-4">Payment Status & Channel</th>
+                    <th className="px-6 py-4">Fulfillment Stage</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {orders.map((ord) => (
-                    <tr key={ord.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="px-6 py-4 font-mono font-black text-purple-700 dark:text-purple-400">
-                        {ord.orderNumber}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <p className="font-black text-slate-900 dark:text-white">{ord.businessName}</p>
-                        <p className="text-[11px] text-slate-500">{ord.customerName} • {ord.customerPhone}</p>
-                        <p className="text-[10px] text-slate-400">{ord.customerEmail}</p>
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-slate-800 dark:text-slate-200">{ord.planTitle}</p>
-                        <p className="text-[11px] font-black text-emerald-600">₹{ord.amount} (Paid)</p>
-                      </td>
-
-                      <td className="px-6 py-4 max-w-xs">
-                        {ord.shippingAddress ? (
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug line-clamp-2">
-                            {ord.shippingAddress.street}, {ord.shippingAddress.city} - {ord.shippingAddress.pincode}
-                          </p>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">Digital Delivery (PDF)</span>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <span
-                            className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-full inline-block ${
-                              ord.orderStatus === 'DELIVERED'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : ord.orderStatus === 'SHIPPED'
-                                ? 'bg-purple-100 text-purple-900'
-                                : ord.orderStatus === 'PRINTING'
-                                ? 'bg-amber-100 text-amber-900'
-                                : 'bg-slate-100 text-slate-800'
-                            }`}
-                          >
-                            {ord.orderStatus.replace('_', ' ')}
-                          </span>
-                          {ord.trackingNumber && (
-                            <p className="text-[10px] font-mono text-purple-600 font-bold">
-                              AWB: {ord.trackingNumber}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openFulfillmentModal(ord)}
-                          className="px-3 py-1.5 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1 ml-auto"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                          <span>Fulfill</span>
-                        </button>
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-slate-400 text-xs font-medium">
+                        No orders match your filter criteria.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredOrders.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-mono font-black text-purple-700 dark:text-purple-400 text-xs">
+                            {ord.orderNumber}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openBarcodeStudio(ord)}
+                            className="mt-1 flex items-center gap-1 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 hover:text-purple-700 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md hover:bg-purple-100 transition-colors"
+                            title="Click to view & download vector barcode"
+                          >
+                            <BarcodeIcon className="w-3 h-3 text-amber-500" />
+                            <span>{ord.barcode || 'Assign Barcode'}</span>
+                          </button>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <p className="font-black text-slate-900 dark:text-white">{ord.businessName}</p>
+                          <p className="text-[11px] text-slate-500">{ord.customerName} • {ord.customerPhone}</p>
+                          <p className="text-[10px] text-slate-400">{ord.customerEmail}</p>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{ord.planTitle}</p>
+                          <p className="text-[11px] font-black text-purple-900 dark:text-purple-300">
+                            ₹{ord.amount}
+                          </p>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            {getPaymentBadge(ord)}
+                            {ord.manualPaymentRef && (
+                              <p className="text-[10px] font-mono text-slate-400">Ref: {ord.manualPaymentRef}</p>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <div className="space-y-1">
+                            <span
+                              className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-full inline-block ${
+                                ord.orderStatus === 'DELIVERED'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : ord.orderStatus === 'SHIPPED'
+                                  ? 'bg-purple-100 text-purple-900'
+                                  : ord.orderStatus === 'PRINTING'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : 'bg-slate-100 text-slate-800'
+                              }`}
+                            >
+                              {ord.orderStatus.replace('_', ' ')}
+                            </span>
+                            {ord.trackingNumber && (
+                              <p className="text-[10px] font-mono text-purple-600 font-bold">
+                                AWB: {ord.trackingNumber}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {ord.paymentStatus !== 'COMPLETED' && (
+                              <button
+                                type="button"
+                                onClick={() => setManualPaymentOrder(ord)}
+                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1"
+                                title="Collect Offline Cash / Direct UPI or Send Online Link"
+                              >
+                                <Banknote className="w-3.5 h-3.5" />
+                                <span>Collect Pay</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => openFulfillmentModal(ord)}
+                              className="px-3 py-1.5 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              <span>Fulfill</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* TAB 2: CLIENT STORES */}
+        {/* TAB 2: CLIENT STORE PROFILES */}
         {activeTab === 'orgs' && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4 animate-in fade-in duration-150">
-            <h3 className="text-base font-black text-slate-900 dark:text-white">
-              All Client Storefronts & QR Links
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  Client Storefronts & Barcode Profiles
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Manage merchant profiles, view custom standee barcodes, and generate client QR assets.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateProfileOpen(true)}
+                className="px-4 py-2 bg-[#4C1D95] hover:bg-[#3B0764] text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Create Client Profile</span>
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {orgs.map((org) => (
                 <div
                   key={org.id}
-                  className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-800/40"
+                  className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-800/40 hover:border-purple-300 dark:hover:border-purple-800 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -336,8 +585,28 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                       <p className="text-[11px] text-slate-400 font-mono">/r/{org.slug}</p>
                     </div>
                     <span className="px-2 py-0.5 text-[9px] font-black uppercase rounded bg-purple-100 text-purple-900">
-                      {org.plan || 'BASIC'}
+                      {org.plan || 'STANDARD'}
                     </span>
+                  </div>
+
+                  {/* Barcode & SKU display */}
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BarcodeIcon className="w-4 h-4 text-amber-500" />
+                      <div>
+                        <span className="text-[9px] text-slate-400 font-bold block uppercase">Custom Barcode</span>
+                        <span className="font-mono font-bold text-xs text-slate-900 dark:text-white">
+                          {org.customBarcode || `MQ-BC-${org.slug.toUpperCase().slice(0, 6)}`}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openBarcodeStudio(undefined, org)}
+                      className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 text-[10px] font-bold rounded-lg border border-purple-200"
+                    >
+                      Studio
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-center text-xs pt-2 border-t border-slate-200 dark:border-slate-700">
@@ -351,124 +620,166 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                     </div>
                   </div>
 
-                  <a
-                    href={`/r/${org.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 text-purple-900 dark:text-purple-300 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 text-center flex items-center justify-center gap-1.5 shadow-xs"
-                  >
-                    <span>Open Live QR Page</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={`/r/${org.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 text-purple-900 dark:text-purple-300 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 text-center flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <span>Live QR Page</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Fulfillment Update Modal */}
-      {editingOrder && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-5 bg-gradient-to-r from-purple-950 to-indigo-950 text-white flex items-center justify-between">
-              <div>
-                <h4 className="font-black text-base">Update Order Fulfillment</h4>
-                <p className="text-xs text-purple-200">
-                  {editingOrder.orderNumber} • {editingOrder.businessName}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingOrder(null)}
-                className="text-purple-200 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateFulfillment} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Order Status
-                </label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
-                >
-                  <option value="PAID">PAID (Order Confirmed)</option>
-                  <option value="PRINTING">PRINTING (In UV Production Queue)</option>
-                  <option value="QUALITY_CHECK">QUALITY_CHECK (Inspecting Acrylic Finish)</option>
-                  <option value="SHIPPED">SHIPPED (Handed to Courier)</option>
-                  <option value="DELIVERED">DELIVERED (Fulfilled)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Courier Partner
-                </label>
-                <select
-                  value={courierPartner}
-                  onChange={(e) => setCourierPartner(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
-                >
-                  {COURIER_PARTNERS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  AWB Tracking Number
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. DEL-8892104912"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Direct Tracking URL
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://www.delhivery.com/track/package/..."
-                  value={trackingUrl}
-                  onChange={(e) => setTrackingUrl(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-3">
+        {/* FULFILLMENT EDIT MODAL */}
+        {editingOrder && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-6 py-5 bg-gradient-to-r from-purple-950 to-indigo-950 text-white flex items-center justify-between">
+                <div>
+                  <h4 className="font-black text-base">Fulfill Order: {editingOrder.orderNumber}</h4>
+                  <p className="text-xs text-purple-200">
+                    {editingOrder.businessName} • {editingOrder.planTitle}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setEditingOrder(null)}
-                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl"
+                  className="text-purple-200 hover:text-white"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating}
-                  className="flex-1 py-2.5 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isUpdating ? 'Saving...' : 'Update Fulfillment'}</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleUpdateFulfillment} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Order Status
+                  </label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                  >
+                    <option value="PENDING_PAYMENT">PENDING_PAYMENT (Awaiting Cash/UPI/Online)</option>
+                    <option value="PAID">PAID (Payment Confirmed)</option>
+                    <option value="PRINTING">PRINTING (In UV Production Queue)</option>
+                    <option value="QUALITY_CHECK">QUALITY_CHECK (Inspecting Acrylic Finish)</option>
+                    <option value="SHIPPED">SHIPPED (Handed to Courier)</option>
+                    <option value="DELIVERED">DELIVERED (Fulfilled)</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Courier Partner
+                    </label>
+                    <select
+                      value={courierPartner}
+                      onChange={(e) => setCourierPartner(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                    >
+                      {COURIER_PARTNERS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      AWB Tracking Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. DEL-8892104912"
+                      value={trackingNumber}
+                      onChange={(e) => setTrackingNumber(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Direct Tracking URL
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://www.delhivery.com/track/package/..."
+                    value={trackingUrl}
+                    onChange={(e) => setTrackingUrl(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Estimated Delivery Date
+                  </label>
+                  <input
+                    type="date"
+                    value={estimatedDelivery}
+                    onChange={(e) => setEstimatedDelivery(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingOrder(null)}
+                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="flex-1 py-2.5 bg-[#4C1D95] hover:bg-[#3B0764] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isUpdating ? 'Saving...' : 'Update Fulfillment'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* MODAL: CUSTOM BARCODE & QR GENERATOR */}
+        <BarcodeQrGeneratorModal
+          isOpen={barcodeModalProps.isOpen}
+          onClose={() => setBarcodeModalProps((prev) => ({ ...prev, isOpen: false }))}
+          initialValue={barcodeModalProps.initialValue}
+          initialTitle={barcodeModalProps.initialTitle}
+          storeSlug={barcodeModalProps.storeSlug}
+          onAssignToOrder={barcodeModalProps.orderId ? handleAssignBarcodeToOrder : undefined}
+        />
+
+        {/* MODAL: CREATE PROFILE VIA BACKEND */}
+        <CreateProfileModal
+          isOpen={isCreateProfileOpen}
+          onClose={() => setIsCreateProfileOpen(false)}
+          onProfileCreated={fetchAdminData}
+        />
+
+        {/* MODAL: COLLECT MANUAL PAYMENT */}
+        <CollectManualPaymentModal
+          isOpen={Boolean(manualPaymentOrder)}
+          onClose={() => setManualPaymentOrder(null)}
+          order={manualPaymentOrder}
+          onPaymentCollected={handlePaymentCollected}
+        />
+      </div>
     </div>
   );
 };

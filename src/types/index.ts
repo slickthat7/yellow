@@ -13,6 +13,15 @@ export type OrderStatus =
   | 'DELIVERED'
   | 'CANCELLED';
 
+export type PaymentMethod =
+  | 'ONLINE_RAZORPAY'
+  | 'ONLINE_LINK'
+  | 'MANUAL_CASH'
+  | 'MANUAL_UPI'
+  | 'MANUAL_BANK_TRANSFER'
+  | 'MANUAL_POS'
+  | 'WAIVED';
+
 export interface ShippingAddress {
   fullName: string;
   phone: string;
@@ -44,6 +53,16 @@ export interface Order {
   standeeMaterial?: string; // 'Digital PDF' | 'Premium Acrylic Standee' | 'Dual NFC + Acrylic Standee'
   shippingAddress?: ShippingAddress | null;
   
+  // Custom Barcode / Standee SKU
+  barcode?: string | null;
+  barcodeFormat?: string | null; // e.g. 'CODE128', 'EAN13', 'QR'
+
+  // Payment method & offline collection
+  paymentMethod?: PaymentMethod | null;
+  manualPaymentRef?: string | null; // UTR / Cheque # / Cash Receipt #
+  manualPaymentCollector?: string | null; // Staff name who collected
+  manualPaymentNotes?: string | null;
+
   // Razorpay transaction fields
   razorpayOrderId?: string | null;
   razorpayPaymentId?: string | null;
@@ -78,6 +97,8 @@ export interface Organization {
   ownerEmail: string;
   phone?: string | null;
   plan?: PlanType;
+  customBarcode?: string | null;
+  customSku?: string | null;
   totalScans: number;
   fiveStarRedirects: number;
   privateFeedbacks: number;

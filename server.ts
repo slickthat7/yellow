@@ -671,6 +671,130 @@ app.put('/api/admin/orders/:id/fulfillment', requireAuth, requireSuperadmin, (re
   res.json({ success: true, order: updated });
 });
 
+// Collect Manual Offline Payment (Superadmin)
+app.post('/api/admin/orders/:id/collect-manual-payment', requireAuth, requireSuperadmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { paymentMethod, manualPaymentRef, manualPaymentCollector, manualPaymentNotes, amountCollected } = req.body;
+
+  const order = dbStore.getOrderById(id) || dbStore.getOrderByNumber(id);
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+
+  const updated = dbStore.markOrderManualPaid(order.id, {
+    paymentMethod: paymentMethod || 'MANUAL_CASH',
+    manualPaymentRef: manualPaymentRef || `MANUAL-${Date.now().toString().slice(-6)}`,
+    manualPaymentCollector: manualPaymentCollector || 'Superadmin',
+    manualPaymentNotes: manualPaymentNotes || 'Offline payment logged via backend',
+    amountCollected: amountCollected ? Number(amountCollected) : undefined,
+  });
+
+  if (!updated) {
+    res.status(500).json({ error: 'Failed to record manual payment' });
+    return;
+  }
+
+  res.json({
+    success: true,
+    message: `Payment of ₹${updated.amount} successfully marked as PAID via ${updated.paymentMethod}`,
+    order: updated,
+  });
+});
+
+// Update Barcode on Order or Org (Superadmin)
+app.put('/api/admin/orders/:id/barcode', requireAuth, requireSuperadmin, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { barcode, barcodeFormat } = req.body;
+
+  const order = dbStore.getOrderById(id) || dbStore.getOrderByNumber(id);
+  if (!order) {
+    res.status(404).json({ error: 'Order not found' });
+    return;
+  }
+
+  if (barcode) {
+    order.barcode = String(barcode).trim();
+  }
+  if (barcodeFormat) {
+    order.barcodeFormat = String(barcodeFormat).trim();
+  }
+
+  // Also sync to org if needed
+  if (order.orgId && barcode) {
+    dbStore.updateOrg(order.orgId, { customBarcode: String(barcode).trim() });
+  }
+
+  res.json({ success: true, order });
+});
+
+// Create Full Client Profile via Backend (Superadmin)
+app.post('/api/admin/create-profile', requireAuth, requireSuperadmin, (req: Request, res: Response) => {
+  try {
+    const {
+      businessName,
+      slug,
+      ownerEmail,
+      ownerPassword,
+      ownerName,
+      phone,
+      plan,
+      googleReviewUrl,
+      googlePlaceId,
+      primaryColor,
+      logoUrl,
+      customBarcode,
+      customSku,
+      createOrder,
+      paymentOption,
+      manualPaymentMethod,
+      manualPaymentRef,
+      manualPaymentCollector,
+      manualPaymentNotes,
+      shippingAddress,
+    } = req.body;
+
+    if (!businessName || !ownerEmail || !googleReviewUrl) {
+      res.status(400).json({
+        error: 'Business Name, Owner Email, and Google Review URL are mandatory fields.',
+      });
+      return;
+    }
+
+    const result = dbStore.createProfileWithAccount({
+      businessName,
+      slug,
+      ownerEmail,
+      ownerPassword,
+      ownerName,
+      phone,
+      plan: plan || 'STANDARD',
+      googleReviewUrl,
+      googlePlaceId,
+      primaryColor: primaryColor || '#581C87',
+      logoUrl: logoUrl || '/mast-qr-logo.svg',
+      customBarcode: customBarcode || `MQ-BC-${Math.floor(100000 + Math.random() * 900000)}`,
+      customSku: customSku || `SKU-MAST-${(slug || businessName).toUpperCase().slice(0, 6)}`,
+      createOrder: createOrder !== false,
+      paymentOption: paymentOption || 'ONLINE',
+      manualPaymentMethod,
+      manualPaymentRef,
+      manualPaymentCollector: manualPaymentCollector || 'Superadmin Lead',
+      manualPaymentNotes,
+      shippingAddress,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Profile for "${result.org.name}" created successfully.`,
+      ...result,
+    });
+  } catch (err: any) {
+    console.error('Error creating profile via backend:', err);
+    res.status(400).json({ error: err.message || 'Failed to create profile' });
+  }
+});
+
 // List all Orgs (Superadmin)
 app.get('/api/admin/orgs', requireAuth, requireSuperadmin, (_req: Request, res: Response) => {
   res.json({ orgs: dbStore.getOrgs() });
