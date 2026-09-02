@@ -7,7 +7,7 @@ import {
   Search,
   X,
   Plus,
-  Barcode as BarcodeIcon,
+  QrCode as QrCodeIcon,
   Banknote,
   Smartphone,
   CreditCard,
@@ -16,6 +16,7 @@ import {
   Save,
   RefreshCw,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import {
   AuthSessionUser,
@@ -26,7 +27,8 @@ import {
 } from '../types/index.js';
 import { MastQrLogo } from '../components/MastQrLogo.js';
 import { COURIER_PARTNERS } from '../data/plans.js';
-import { BarcodeQrGeneratorModal } from '../components/BarcodeQrGeneratorModal.js';
+import { QRCodeGeneratorModal } from '../components/QRCodeGeneratorModal.js';
+import { QRCodeStudioView } from '../components/QRCodeStudioView.js';
 import { CreateProfileModal } from '../components/CreateProfileModal.js';
 import { CollectManualPaymentModal } from '../components/CollectManualPaymentModal.js';
 
@@ -39,7 +41,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
   const [analytics, setAnalytics] = useState<SuperadminAnalytics | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [activeTab, setActiveTab] = useState<'orders' | 'orgs' | 'barcode-studio'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'orgs' | 'qr-studio'>('orders');
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
 
@@ -54,17 +56,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
 
   // New Superadmin Modals
   const [isCreateProfileOpen, setIsCreateProfileOpen] = useState(false);
-  const [barcodeModalProps, setBarcodeModalProps] = useState<{
+  const [qrModalProps, setQrModalProps] = useState<{
     isOpen: boolean;
-    initialValue: string;
+    initialUrl: string;
     initialTitle: string;
     storeSlug: string;
-    orderId?: string;
+    businessName: string;
+    primaryColor?: string;
   }>({
     isOpen: false,
-    initialValue: '',
+    initialUrl: '',
     initialTitle: '',
     storeSlug: '',
+    businessName: '',
   });
   const [manualPaymentOrder, setManualPaymentOrder] = useState<Order | null>(null);
 
@@ -138,46 +142,35 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
     }
   };
 
-  const openBarcodeStudio = (order?: Order, org?: Organization) => {
+  const openQrStudio = (order?: Order, org?: Organization) => {
     if (order) {
-      setBarcodeModalProps({
+      const target = order.businessSlug
+        ? `${window.location.origin}/r/${order.businessSlug}`
+        : `${window.location.origin}/track?q=${encodeURIComponent(order.orderNumber)}`;
+      setQrModalProps({
         isOpen: true,
-        initialValue: order.barcode || `MQ-BC-${Math.floor(100000 + Math.random() * 900000)}`,
-        initialTitle: `Standee Barcode: ${order.orderNumber} (${order.businessName})`,
+        initialUrl: target,
+        initialTitle: `Standee QR Code: ${order.orderNumber} (${order.businessName})`,
         storeSlug: order.businessSlug,
-        orderId: order.id,
+        businessName: order.businessName,
       });
     } else if (org) {
-      setBarcodeModalProps({
+      setQrModalProps({
         isOpen: true,
-        initialValue: org.customBarcode || `MQ-BC-${org.slug.toUpperCase().slice(0, 6)}-${Math.floor(1000 + Math.random() * 9000)}`,
-        initialTitle: `Store Barcode & QR: ${org.name}`,
+        initialUrl: `${window.location.origin}/r/${org.slug}`,
+        initialTitle: `Store Standee QR: ${org.name}`,
         storeSlug: org.slug,
+        businessName: org.name,
+        primaryColor: org.primaryColor,
       });
     } else {
-      setBarcodeModalProps({
+      setQrModalProps({
         isOpen: true,
-        initialValue: `MQ-BC-${Math.floor(100000 + Math.random() * 900000)}`,
-        initialTitle: 'Custom Barcode & Standee SKU Studio',
+        initialUrl: `${window.location.origin}/r/demo`,
+        initialTitle: 'Standee QR Code & Print Studio',
         storeSlug: '',
+        businessName: 'Business Storefront',
       });
-    }
-  };
-
-  const handleAssignBarcodeToOrder = async (barcode: string, format: string) => {
-    if (!barcodeModalProps.orderId) return;
-    try {
-      const res = await fetch(`/api/admin/orders/${barcodeModalProps.orderId}/barcode`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode, barcodeFormat: format }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setOrders((prev) => prev.map((o) => (o.id === barcodeModalProps.orderId ? data.order : o)));
-      }
-    } catch (err) {
-      console.error('Error saving barcode:', err);
     }
   };
 
@@ -192,7 +185,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
       o.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (o.barcode && o.barcode.toLowerCase().includes(searchQuery.toLowerCase()));
+      (o.businessSlug && o.businessSlug.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (!matchesSearch) return false;
 
@@ -272,11 +265,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => openBarcodeStudio()}
+                onClick={() => openQrStudio()}
                 className="hidden md:flex px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700"
               >
-                <BarcodeIcon className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
-                <span>Barcode Studio</span>
+                <QrCodeIcon className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
+                <span>QR Standee Studio</span>
               </button>
 
               <button
@@ -339,15 +332,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
 
             <button
               type="button"
-              onClick={() => openBarcodeStudio()}
+              onClick={() => setActiveTab('qr-studio')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'barcode-studio'
+                activeTab === 'qr-studio'
                   ? 'bg-[#4C1D95] text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <BarcodeIcon className="w-3.5 h-3.5" />
-              <span>Barcode & Standee Studio</span>
+              <QrCodeIcon className="w-3.5 h-3.5" />
+              <span>QR Code & Standee Studio</span>
             </button>
           </div>
 
@@ -406,7 +399,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                   Order Fulfillment & Payment Pipeline
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Manage UV print fabrication, assign custom standee barcodes, collect offline manual payments, and dispatch couriers.
+                  Manage UV print fabrication, generate high-resolution QR acrylic standees, collect offline manual payments, and dispatch couriers.
                 </p>
               </div>
 
@@ -416,7 +409,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by name, #, barcode..."
+                    placeholder="Search by name, #, slug..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-purple-600"
@@ -439,7 +432,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="px-6 py-4">Order # & Barcode</th>
+                    <th className="px-6 py-4">Order # & Standee QR</th>
                     <th className="px-6 py-4">Customer & Store</th>
                     <th className="px-6 py-4">Hardware Plan</th>
                     <th className="px-6 py-4">Payment Status & Channel</th>
@@ -463,12 +456,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                           </p>
                           <button
                             type="button"
-                            onClick={() => openBarcodeStudio(ord)}
-                            className="mt-1 flex items-center gap-1 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 hover:text-purple-700 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md hover:bg-purple-100 transition-colors"
-                            title="Click to view & download vector barcode"
+                            onClick={() => openQrStudio(ord)}
+                            className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:text-purple-700 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 px-2 py-0.5 rounded-md hover:bg-purple-100 transition-colors"
+                            title="Click to generate vector QR & UV acrylic artwork"
                           >
-                            <BarcodeIcon className="w-3 h-3 text-amber-500" />
-                            <span>{ord.barcode || 'Assign Barcode'}</span>
+                            <QrCodeIcon className="w-3 h-3 text-purple-600" />
+                            <span>Generate QR Artwork</span>
                           </button>
                         </td>
 
@@ -556,10 +549,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Client Storefronts & Barcode Profiles
+                  Client Storefronts & QR Profiles
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Manage merchant profiles, view custom standee barcodes, and generate client QR assets.
+                  Manage merchant profiles, generate instant acrylic QR standees, and inspect live feedback routing.
                 </p>
               </div>
 
@@ -589,23 +582,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
                     </span>
                   </div>
 
-                  {/* Barcode & SKU display */}
+                  {/* QR & Standee Generation Shortcut */}
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <BarcodeIcon className="w-4 h-4 text-amber-500" />
+                      <QrCodeIcon className="w-4 h-4 text-purple-600" />
                       <div>
-                        <span className="text-[9px] text-slate-400 font-bold block uppercase">Custom Barcode</span>
+                        <span className="text-[9px] text-slate-400 font-bold block uppercase">Smart QR Standee</span>
                         <span className="font-mono font-bold text-xs text-slate-900 dark:text-white">
-                          {org.customBarcode || `MQ-BC-${org.slug.toUpperCase().slice(0, 6)}`}
+                          /r/{org.slug}
                         </span>
                       </div>
                     </div>
                     <button
                       type="button"
-                      onClick={() => openBarcodeStudio(undefined, org)}
-                      className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 text-[10px] font-bold rounded-lg border border-purple-200"
+                      onClick={() => openQrStudio(undefined, org)}
+                      className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 text-[10px] font-bold rounded-lg border border-purple-200"
                     >
-                      Studio
+                      QR Studio
                     </button>
                   </div>
 
@@ -635,6 +628,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
               ))}
             </div>
           </div>
+        )}
+
+        {/* TAB 3: QR CODE & UV STANDEE STUDIO */}
+        {activeTab === 'qr-studio' && (
+          <QRCodeStudioView
+            orders={orders}
+            orgs={orgs}
+            onRefreshData={fetchAdminData}
+            onOpenModal={openQrStudio}
+          />
         )}
 
         {/* FULFILLMENT EDIT MODAL */}
@@ -755,14 +758,15 @@ export const AdminDashboardPage: React.FC<AdminDashboardProps> = ({ user, onLogo
           </div>
         )}
 
-        {/* MODAL: CUSTOM BARCODE & QR GENERATOR */}
-        <BarcodeQrGeneratorModal
-          isOpen={barcodeModalProps.isOpen}
-          onClose={() => setBarcodeModalProps((prev) => ({ ...prev, isOpen: false }))}
-          initialValue={barcodeModalProps.initialValue}
-          initialTitle={barcodeModalProps.initialTitle}
-          storeSlug={barcodeModalProps.storeSlug}
-          onAssignToOrder={barcodeModalProps.orderId ? handleAssignBarcodeToOrder : undefined}
+        {/* MODAL: CUSTOM QR CODE & UV STANDEE GENERATOR */}
+        <QRCodeGeneratorModal
+          isOpen={qrModalProps.isOpen}
+          onClose={() => setQrModalProps((prev) => ({ ...prev, isOpen: false }))}
+          initialUrl={qrModalProps.initialUrl}
+          initialTitle={qrModalProps.initialTitle}
+          storeSlug={qrModalProps.storeSlug}
+          businessName={qrModalProps.businessName}
+          primaryColor={qrModalProps.primaryColor}
         />
 
         {/* MODAL: CREATE PROFILE VIA BACKEND */}

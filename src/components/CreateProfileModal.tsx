@@ -4,7 +4,7 @@ import {
   Building2,
   User,
   CreditCard,
-  Barcode as BarcodeIcon,
+  QrCode as QrCodeIcon,
   CheckCircle2,
   Copy,
   Check,
@@ -255,11 +255,11 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
             {/* Standee & Payment Details */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">Assigned Barcode</span>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Standee QR Identifier</span>
                 <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
-                  {createdResult.org.customBarcode || 'Auto-generated'}
+                  /r/{createdResult.org.slug}
                 </span>
-                <p className="text-[10px] text-slate-500 mt-1">Ready for UV print standee base</p>
+                <p className="text-[10px] text-slate-500 mt-1">Ready for high-res UV print acrylic standee</p>
               </div>
 
               <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
@@ -431,11 +431,11 @@ export const CreateProfileModal: React.FC<CreateProfileModalProps> = ({
               </div>
             </div>
 
-            {/* SECTION 3: PLAN & CUSTOM BARCODE */}
+            {/* SECTION 3: PLAN & CUSTOM QR / SKU */}
             <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2 text-xs font-black uppercase text-purple-900 dark:text-purple-400 tracking-wider">
-                <BarcodeIcon className="w-4 h-4" />
-                <span>3. Hardware Plan & Custom Barcode / Standee SKU</span>
+                <QrCodeIcon className="w-4 h-4" />
+                <span>3. Hardware Plan & Standee SKU / QR Serial</span>
               </div>
 
               {/* Plan Selection Radio Cards */}
